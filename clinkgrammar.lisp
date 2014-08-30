@@ -247,10 +247,13 @@
 (cffi:defcfun ("linkage_delete" linkage_delete) :void
   (linkage :pointer))
 
+;; (cffi:defcfun ("linkage_print_diagram" linkage_print_diagram) :string
+;;   (linkage :pointer)
+;;   (display_walls :pointer)
+;;   (screen_width :pointer))
+
 (cffi:defcfun ("linkage_print_diagram" linkage_print_diagram) :string
-  (linkage :pointer)
-  (display_walls :pointer)
-  (screen_width :pointer))
+  (linkage :pointer))
 
 (cffi:defcfun ("linkage_print_postscript" linkage_print_postscript) :string
   (linkage :pointer)
