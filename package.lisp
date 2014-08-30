@@ -1,4 +1,4 @@
 (defpackage :link-grammar
   (:nicknames :lg)
-  (:use :cl :iterate)
-  (:export ))
+  (:use :cl :iterate :cffi)
+  (:export :with-dictionary :dictionary))

@@ -10,6 +10,14 @@
 
 (in-package :link-grammar)
 
+(define-foreign-library link-grammar
+  (:unix (:or "/usr/local/lib/liblink-grammar.so"
+              "/usr/local/lib/liblink-grammar.so.5"
+              "/usr/local/lib/liblink-grammar.so.5.0.8"))
+  (t (:default "liblink-grammar")))
+
+(use-foreign-library link-grammar)
+
 (cl:defmacro defanonenum (&body enums)
    "Converts anonymous enums to defconstants."
   `(cl:progn ,@(cl:loop for value in enums

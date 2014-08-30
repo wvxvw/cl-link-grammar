@@ -10,6 +10,7 @@
   :depends-on (:alexandria :iterate :split-sequence :cffi :cl-containers)
   :serial t
   :components ((:file "package")
-               (:file "clinkgrammar"))
+               (:file "clinkgrammar")
+               (:file "clink-ojbects"))
   :description "Bindings for link-grammar parser:
                 http://www.abisource.com/projects/link-grammar/")
