@@ -49,16 +49,16 @@
     (format t "~&~s" foo)))
 
 (defun test-hello-world ()
-  (with-dictionary en ()
-    (with-options opts
+  (with-dictionary (en)
+    (format t "~&dictionary: ~s" en)
+    (with-options (opts)
+      (format t "~&options: ~s ~&~s ~&~s"
+              opts *dictionary* *options*)
       (loop :for saying :in
          (list "Grammar is useless because there is nothing to say -- Gertrude Stein."
                "Computers are useless; they can only give you answers -- Pablo Picasso.")
-         :do (with-sentence sent en saying
-               (with-linkage link sent opts 0
-                   (format t "~&linkage: ~s~&~s"
-                           link (print-diagram link))))))))
-
-(defmacro test-with-gensysm (foo &body body)
-  (with-output-to-string
-    
+         :do (with-sentence (sent saying)
+               (format t "~&sentence: ~s" sent)
+               (with-linkage (link)
+                 (format t "~&linkage: ~s~&~s~s"
+                         link (print-diagram link) (handle link))))))))

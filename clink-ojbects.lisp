@@ -4,9 +4,14 @@
 
 (defvar *link-index* 0)
 (defvar *sentence-index* 0)
+(defvar *dictionary* nil)
+(defvar *options* nil)
+(defvar *sentence* nil)
+(defvar *linkage* nil)
 
 (defclass sentence ()
-  ((handle :initarg :handle :accessor handle)))
+  ((handle :initarg :handle :accessor handle)
+   (numlinkages :accessor numlinkages)))
 
 (defclass linkage ()
   ((handle :initarg :handle :accessor handle)))
@@ -43,7 +48,7 @@
 
 (defun data-dir () (dictionary_get_data_dir))
 
-(defmacro with-dictionary (dictionary (&optional language data-dir) &body body)
+(defmacro with-dictionary ((dictionary &optional language data-dir) &body body)
   (let ((dictionary dictionary))
     (alexandria:with-gensyms (dir)
       `(unwind-protect
@@ -51,23 +56,35 @@
               (when ,dir
                 (dictionary_set_data_dir
                  (translate-logical-pathname ,dir)))
-              (setf ,dictionary (make-instance 'dictionary :lang ,language))
+              (setf ,dictionary (make-instance 'dictionary :lang ,language)
+                    *dictionary* ,dictionary)
               ,@body)
          (when ,dictionary
-           (dictionary_delete (language ,dictionary)))))))
+           (dictionary_delete (language ,dictionary))
+           (setf *dictionary* nil))))))
 
-(defmacro with-sentence (sentence dictionary raw-input &body body)
+(defmacro with-sentence ((sentence raw-input &optional
+                                   (dictionary '*dictionary*)
+                                   (options '*options*)) &body body)
   (let ((sentence sentence))
     `(unwind-protect
           (progn
             (setf ,sentence
                   (make-instance
                    'sentence
-                   :handle (sentence_create ,raw-input (language ,dictionary))))
+                   :handle (sentence_create ,raw-input (language ,dictionary)))
+                  (numlinkages ,sentence)
+                  (sentence_parse (handle ,sentence) (handle ,options))
+                  *sentence* ,sentence)
             ,@body)
-       (when ,sentence (sentence_delete (handle ,sentence))))))
+       (when ,sentence
+         (sentence_delete (handle ,sentence))
+         (setf *sentence* nil)))))
 
-(defmacro with-linkage (linkage sentence opts index &body body)
+(defmacro with-linkage ((linkage &optional
+                                 (index 0)
+                                 (sentence '*sentence*)
+                                 (opts '*options*)) &body body)
   (let ((linkage linkage))
     `(unwind-protect
           (progn
@@ -75,20 +92,26 @@
                   (make-instance
                    'linkage
                    :handle (linkage_create
-                            ,index (handle ,sentence) (handle ,opts))))
+                            ,index (handle ,sentence) (handle ,opts)))
+                  *linkage* ,linkage)
             ,@body)
-       (when ,linkage (linkage_delete (handle ,linkage))))))
+       (when ,linkage
+         (linkage_delete (handle ,linkage))
+         (setf *linkage* nil)))))
 
-(defmacro with-options (opts &body body)
+(defmacro with-options ((opts) &body body)
   (let ((opts opts))
     `(unwind-protect
           (progn
             (setf ,opts
                   (make-instance
                    'parse-options
-                   :handle (parse_options_create)))
+                   :handle (parse_options_create))
+                  *options* ,opts)
             ,@body)
-       (when ,opts (parse_options_delete (handle ,opts))))))
+       (when ,opts
+         (parse_options_delete (handle ,opts))
+         (setf *options* nil)))))
 
 (defmacro with-ith-link (index &body body)
   `(let ((*link-index* ,index))
@@ -137,10 +160,9 @@
 (defmethod link-cost ((this sentence) &optional (index *sentence-index*))
   (sentence_link_cost (handle sentence) index))
 
-(defmethod print-diagram ((this linkage) &optional display-wallsp screen-wdith)
+(defmethod print-diagram ((this linkage) &optional display-wallsp (screen-wdith 80))
   ;; what are the types of `display-wallsp' and `screen-wdith'?
-  (declare (ignorable display-wallsp screen-wdith))
-  (linkage_print_diagram (handle this)))
+  (linkage_print_diagram (handle this) display-wallsp screen-wdith))
 
 (defmethod print-postscript ((this linkage) display-wallsp screen-wdith)
   (linkage_print_postscript (handle this) display-wallsp screen-wdith))
