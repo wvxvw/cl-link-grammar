@@ -10,8 +10,7 @@
 (defvar *linkage* nil)
 
 (defclass sentence ()
-  ((handle :initarg :handle :accessor handle)
-   (numlinkages :accessor numlinkages)))
+  ((handle :initarg :handle :accessor handle)))
 
 (defclass linkage ()
   ((handle :initarg :handle :accessor handle)))
@@ -49,9 +48,9 @@
 (defun data-dir () (dictionary_get_data_dir))
 
 (defmacro with-dictionary ((dictionary &optional language data-dir) &body body)
-  (let ((dictionary dictionary))
-    (alexandria:with-gensyms (dir)
-      `(unwind-protect
+  (alexandria:with-gensyms (dir)
+    `(let (,dictionary)
+       (unwind-protect
             (let ((,dir ,data-dir))
               (when ,dir
                 (dictionary_set_data_dir
@@ -64,17 +63,14 @@
            (setf *dictionary* nil))))))
 
 (defmacro with-sentence ((sentence raw-input &optional
-                                   (dictionary '*dictionary*)
-                                   (options '*options*)) &body body)
-  (let ((sentence sentence))
-    `(unwind-protect
+                                   (dictionary '*dictionary*)) &body body)
+  `(let (,sentence)
+     (unwind-protect
           (progn
             (setf ,sentence
                   (make-instance
                    'sentence
                    :handle (sentence_create ,raw-input (language ,dictionary)))
-                  (numlinkages ,sentence)
-                  (sentence_parse (handle ,sentence) (handle ,options))
                   *sentence* ,sentence)
             ,@body)
        (when ,sentence
@@ -85,8 +81,8 @@
                                  (index 0)
                                  (sentence '*sentence*)
                                  (opts '*options*)) &body body)
-  (let ((linkage linkage))
-    `(unwind-protect
+  `(let (,linkage)
+     (unwind-protect
           (progn
             (setf ,linkage
                   (make-instance
@@ -100,8 +96,8 @@
          (setf *linkage* nil)))))
 
 (defmacro with-options ((opts) &body body)
-  (let ((opts opts))
-    `(unwind-protect
+  `(let (,opts)
+     (unwind-protect
           (progn
             (setf ,opts
                   (make-instance
@@ -134,9 +130,14 @@
   (parse_options_reset_resources (handle this)))
 
 (defmethod parse ((this sentence) (options parse-options))
-  ;; `sentence_parse' returns something (integer), maybe it's
-  ;; an error code or something like that?
+  "Parses THIS sentence into a structured representation and returns
+the number of linkages found in it."
   (sentence_parse (handle this) (handle options)))
+
+(defmethod split ((this sentence) (options parse-options))
+  "Parses THIS sentence into a structured representation and returns
+the number of linkages found in it."
+  (sentence_split (handle this) (handle options)))
 
 (defmethod sentence-length ((this sentence))
   (sentence_length (handle this)))
@@ -160,9 +161,21 @@
 (defmethod link-cost ((this sentence) &optional (index *sentence-index*))
   (sentence_link_cost (handle sentence) index))
 
-(defmethod print-diagram ((this linkage) &optional display-wallsp (screen-wdith 80))
-  ;; what are the types of `display-wallsp' and `screen-wdith'?
+(defmethod print-diagram ((this linkage)
+                          &optional display-wallsp
+                            (screen-wdith (linkage-print-length this)))
+  "Creates a diagram which shows the parse of THIS linkage.
+DISPLAY-WALLSP if true, will instruct to print the linkage margins (walls).
+SCREEN-WDITH by default, will try to guess the space needed to print the linkage."
+  (format t "~&screen-wdith: ~d" screen-wdith)
   (linkage_print_diagram (handle this) display-wallsp screen-wdith))
+
+(defmethod linkage-print-length ((this linkage))
+  (iter
+    (for word :in (words this))
+    (format t "~&word: ~s" word)
+    (summing (1+ (length word)) :into result)
+    (finally (return (1- result)))))
 
 (defmethod print-postscript ((this linkage) display-wallsp screen-wdith)
   (linkage_print_postscript (handle this) display-wallsp screen-wdith))
@@ -200,8 +213,11 @@
   (linkage_get_link_domain_names (handle this) index))
 
 (defmethod words ((this linkage))
-  ;; what does this return?
-  (linkage_get_words (handle this)))
+  "Returns a list of words of THIS linkage"
+  (iter
+    (with words := (linkage_get_words (handle this)))
+    (for i :below (linkage_get_num_words (handle this)))
+    (collect (mem-aref words :string i))))
 
 (defmethod word ((this linkage) index)
   (linkage_get_word (handle this) index))

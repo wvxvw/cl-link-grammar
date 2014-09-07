@@ -212,6 +212,10 @@
   (sent :pointer)
   (opts :pointer))
 
+(cffi:defcfun ("sentence_parse" sentence_split) :int
+  (sent :pointer)
+  (opts :pointer))
+
 (cffi:defcfun ("sentence_length" sentence_length) :int
   (sent :pointer))
 
