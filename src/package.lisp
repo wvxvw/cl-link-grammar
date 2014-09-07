@@ -51,4 +51,28 @@
            :*sentence*
            :*linkage*
            ;; functions
-           :data-dir))
+           :data-dir)
+  (:documentation
+   "@a[http://www.abisource.com/projects/link-grammar/]{link-grammar}
+    Provides Common Lisp bindings for link-grammar library.
+
+    These bindings provide thin wrapper and a simple CLOS abstraction
+    layer on top of it.
+
+    @begin[Using the library]{section}
+    The library provides these macros
+
+    @aboutfun{with-sentence}
+    @aboutfun{with-linkage}
+    @aboutfun{with-options}
+    @aboutfun{with-sentence}
+    @aboutfun{with-ith-link}
+    @aboutfun{with-ith-sentence}
+
+    To make management of C++ objects easier.
+    @end{section}
+
+    @begin[Another section]{section}
+    Dummy text.
+
+    @end{section}"))

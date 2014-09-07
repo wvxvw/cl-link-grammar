@@ -48,6 +48,17 @@
 (defun data-dir () (dictionary_get_data_dir))
 
 (defmacro with-dictionary ((dictionary &optional language data-dir) &body body)
+  "@arg[dictionary]{A symbol to bind to the @class{dictionary}, in addition to
+      this symbol *dictionary* special variable will be also bound to the currently
+      active dictionary}
+   @arg[language]{Language code (optional)}
+   @arg[data-dir]{Directory to look up for dictionary files (optional)}
+   @arg[body]{Forms to bind the @code{dictionary} in}
+   @return{The result of the last form of the @code{body}}
+
+   @short{Use this macro to create and manage @class{dictionary} objects.}
+
+   @see{dictionary}"
   (alexandria:with-gensyms (dir)
     `(let (,dictionary)
        (unwind-protect
