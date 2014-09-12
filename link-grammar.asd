@@ -77,13 +77,14 @@
   :author ("Zach Kost-Smith <zachkostsmith@gmail.com>"
            "Oleg Sivokon <olegsivokon@gmail.com>")
   :license "LGPL2"
-  :depends-on (:alexandria :iterate :split-sequence :cffi :cl-containers)
+  :depends-on (:alexandria :iterate :cffi :closer-mop)
   :serial t
   :components ((:module "src"
                         :serial t
                         :components
                         ((:file "package")
                          (:file "clinkgrammar")
+                         (:file "virtual-slot")
                          (:file "clink-ojbects"))))
   :description "Bindings for link-grammar parser:
                 http://www.abisource.com/projects/link-grammar/"

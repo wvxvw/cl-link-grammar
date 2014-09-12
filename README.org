@@ -70,7 +70,7 @@
         num_linkages = sentence_parse(sent, opts);
         if (num_linkages > 0) {
           linkage = linkage_create(0, sent, opts);
-          printf("%s\n", diagram = linkage_print_diagram(linkage));
+          printf("%s\n", diagram = linkage_print_diagram(linkage, 1, 80));
           linkage_free_diagram(diagram);
           linkage_delete(linkage);
         }

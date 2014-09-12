@@ -9,32 +9,308 @@
 (defvar *sentence* nil)
 (defvar *linkage* nil)
 
-(defclass sentence ()
-  ((handle :initarg :handle :accessor handle)))
+(closer-mop:defclass sentence (closer-mop:standard-object)
+  ((handle :initarg :handle :accessor handle))
+  (:metaclass virtual-metaclass))
 
-(defclass linkage ()
-  ((handle :initarg :handle :accessor handle)))
+(closer-mop:defclass linkage (closer-mop:standard-object)
+  ((handle :initarg :handle :accessor handle))
+  (:metaclass virtual-metaclass))
 
-(defclass dictionary ()
-  ((language :initarg :lang :accessor language)))
+(closer-mop:defclass dictionary (closer-mop:standard-object)
+  ((language :initarg :lang :accessor language))
+  (:metaclass virtual-metaclass))
 
-(defclass parse-options ()
+(defgeneric verbosity (instance)
+  (:documentation
+   "@arg[instance]{a @class{parse-options}}
+    @return{the verbosity level of the parser, higher level means
+      that the parser will be more verbose}
+    @short{Default value is 0, seems like 2 is the highest value.}"))
+
+(defgeneric linkage-limit (instance)
+  (:documentation
+   "@arg[instance]{a @class{parse-options}}
+    @return{The maximum number of links a parser will try to find in
+      a sentence it parses.}
+    @short{Default value is 10000}
+
+    This parameter determines the @em{maximum} number of linkages that
+    are considered in post-processing. If more than
+    @code{linkage-limit} linkages found, then a random sample of
+    @code{linkage-limit} is chosen for post-processing. When this
+    happen a warning is displayed at verbosity levels bigger than 1."))
+
+(defgeneric disjunct-cost (instance &optional index)
+  (:documentation
+   "@arg[instance]{a @class{parse-options}}
+    @return{The maximum number of links a parser will try to find in
+      a sentence it parses.}
+    @short{Determines the maximum disjunct cost used during
+    parsing, where the cost of a disjunct is equal to the maximum cost
+    of all of its connectors. The default is that all disjuncts, no
+    matter what their cost, are considered.}"))
+
+(defgeneric max-null-count (instance)
+  (:documentation
+   "@arg[instance]{a @class{parse-options}}
+    @return{The maximum number of links a parser will try to find in
+      a sentence it parses.}
+    @short{Default value is 0}
+
+    This determines the maximum number of null links that
+    a parse might have. A call to @fun{parse} will find all
+    linkages having the minimum number of null links within the range
+    specified by this parameter in the @class{parse-options}.
+
+    @see-slot{min-null-count}"))
+
+(defgeneric min-null-count (instance)
+  (:documentation
+   "@arg[instance]{a @class{parse-options}}
+    @return{The lower bound on the range set by @code{max-null-count}.}
+    @short{Default value is 0}
+
+    @see-slot{max-null-count}"))
+
+(defgeneric islandsp (instance)
+  (:documentation
+   "@arg[instance]{a @class{parse-options}}
+    @return{@code{T} if parser is allowed to parse disconnected links.}
+    @short{Default value is nil}
+
+    This option determines whether or not \"islands\" of links are
+    allowed. For example, the following linkage has an island:
+
+@begin{pre}
+    +------Wd-----+
+    |     +--Dsu--+---Ss--+-Paf-+     +--Dsu--+---Ss--+--Pa-+
+    |     |       |       |     |     |       |       |     |
+  ///// this sentence.n is.v false.a this sentence.n is.v true.a
+@end{pre}
+
+    I.e. islands are the connected components of the link graph."))
+
+(defgeneric short-length (instance)
+  (:documentation
+   "@arg[instance]{a @class{parse-options}}
+    @return{The lenght of the longest allowed links.}
+    @short{This parameter determines how long the links are allowed to
+    be. The intended use of this is to speed up parsing by not
+    considering very long links for most connectors, since they are
+    very rarely used in a correct parse. An entry for
+    @code{UNLIMITED-CONNECTORS} in the dictionary will specify which
+    connectors are exempt from the length limit.}"))
+
+(defgeneric max-memory (instance)
+  (:documentation
+   "@arg[instance]{a @class{parse-options}}
+    @return{The memory limit for the parser (in bytes?).}
+    @short{Determines the maximum memory allowed during parsing. This is used
+    just as @code{max-parse-time} is, so that the parsing process is
+    terminated as quickly as possible after the total memory
+    (including that allocated to all dictionaries, etc.) exceeds the
+    maximum allowed.}
+
+    @see-slot{max-parse-time}"))
+
+(defgeneric max-parse-time (instance)
+  (:documentation
+   "@arg[instance]{a @class{parse-options}}
+    @return{The time to strart to wrap up the parsing (in milliseconds?).}
+    @short{Determines the @em{approximate} maximum time that parsing is
+    allowed to take. The way it works is that after this time has
+    expired, the parsing process is artificially forced to complete
+    quickly by pretending that no further solutions (entries in the
+    hash table) can be constructed. The actual parsing time might be
+    slightly longer.}"))
+
+(defgeneric cost-model-type (instance)
+  (:documentation
+   "@arg[instance]{a @class{parse-options}}
+    @return{The type of the model used by the parser (I think it's a string).}
+    @short{The cost model type for ranking linkages. Currently, there are two
+    models: VDAL (1) and CORPUS (2). The VDAL model ranks parses from
+    lowest to highest cost in and-cost, disjunct-cost,
+    unused-word-cost and structure-violations-cost. The CORPUS model
+    ranks parses according to the frequency of use of disjuncts, based
+    on a statistical analysis of a collection of texts.}"))
+
+(defgeneric all-short-connectors-p (instance)
+  (:documentation
+   "@arg[instance]{a @class{parse-options}}
+    @return{@code{T} if there is a limit on how far connectors may be.}
+    @short{If true, then all connectors have length restrictions imposed on
+    them -- they can be no farther than @code{short-length} apart. This is
+    used when parsing in \"panic\" mode, for example.}"))
+
+(closer-mop:defclass parse-options (closer-mop:standard-object)
   ((handle :initarg :handle :accessor handle)
-   (verbosity :initarg :verbosity :accessor verbosity)
-   (linkage-limit :initarg :linkage-limit :accessor linkage-limit)
-   (disjunct-cost :initarg :disjcunct-cost :accessor disjunct_cost)
-   (min-null-count :initarg :min-null-count :accessor min-null-count)
-   (max-null-count :initarg :max-null-count :accessor max-null-count)
-   (islandsp :initarg :islandsp :accessor islandsp)
-   (short-length :initarg :short-length :accessor short-length)
-   (max-memory :initarg :max-memory :accessor max-memory)
-   (max-parse-time :initarg :max-parse-time :accessor max-parse-time)
-   (cost-model-type :initarg :cost-model-type :accessor cost-model-type)
+   (verbosity :initarg :verbosity
+              :accessor :verbosity
+              :allocation :virtual
+              :function 'virt-verbosity)
+   (linkage-limit :initarg :linkage-limit
+                  :accessor linkage-limit
+                  :allocation :virtual
+                  :function 'virt-linkage-limit)
+   (disjunct-cost :initarg :disjcunct-cost
+                  :accessor disjunct_cost
+                  :allocation :virtual
+                  :function 'virt-disjunct-cost)
+   (min-null-count :initarg :min-null-count
+                   :accessor min-null-count
+                   :allocation :virtual
+                   :function 'virt-min-null-count)
+   (max-null-count :initarg :max-null-count
+                   :accessor max-null-count
+                   :allocation :virtual
+                   :function 'virt-max-null-count)
+   (islandsp :initarg :islandsp
+             :accessor islandsp
+             :allocation :virtual
+             :function 'virt-islandsp)
+   (short-length :initarg :short-length
+                 :accessor short-length
+                 :allocation :virtual
+                 :function 'virt-short-length)
+   (max-memory :initarg :max-memory
+               :accessor max-memory
+               :allocation :virtual
+               :function 'virt-max-memory)
+   (max-parse-time :initarg :max-parse-time
+                   :accessor max-parse-time
+                   :allocation :virtual
+                   :function 'virt-max-parse-time)
+   (cost-model-type :initarg :cost-model-type
+                    :accessor cost-model-type
+                    :allocation :virtual
+                    :function 'virt-cost-model-type)
    (display-morphology-p :initarg :display-morphology-p
-                         :accessor display-morphology-p)
-   (spell-guess-p :initarg :spell-guess-p :accessor spell-guess-p)
+                         :accessor display-morphology-p
+                         :allocation :virtual
+                         :function 'virt-display-morphology-p)
+   (spell-guess-p :initarg :spell-guess-p
+                  :accessor spell-guess-p
+                  :allocation :virtual
+                  :function 'virt-spell-guess-p)
    (all-short-connectors-p :initarg :all-short-connectors-p
-                           :accessor all-short-connectors-p)))
+                           :accessor all-short-connectors-p
+                           :allocation :virtual
+                           :function 'virt-short-connectors-p))
+  (:metaclass virtual-metaclass)
+  (:documentation
+   "@short{This class maps to @code{Parse_Options} C++ class. It uses
+        @code{virtual-metaclass} metaclass for all slots but the
+        pointer to the object in C++ environment. This means that it
+        doesn't store the information in its slots, rather it
+        delegates the calls to slots to C++ code.}
+
+    @see-slot{verbosity}
+    @see-slot{linkage-limit}
+    @see-slot{disjunct-cost}
+    @see-slot{nim-null-count}
+    @see-slot{max-null-count}
+    @see-slot{islandsp}
+    @see-slot{short-length}
+    @see-slot{max-memory}
+    @see-slot{max-parse-time}
+    @see-slot{cost-model-type}
+    @see-slot{display-morphology-p}
+    @see-slot{spell-guess-p}
+    @see-slot{all-short-connectors-p}
+"))
+
+(defun virt-verbosity (opts key &optional value)
+  (ecase key
+    (:get (parse_options_get_verbosity (handle opts)))
+    (:set (parse_options_set_verbosity (handle opts) value))
+    (:setp t)
+    (:unset (values))))
+
+(defun virt-linkage-limit (opts key &optional value)
+  (ecase key
+    (:get (parse_options_get_linkage_limit (handle opts)))
+    (:set (parse_options_set_linkage_limit (handle opts) value))
+    (:setp t)
+    (:unset (values))))
+
+(defun virt-disjunct-cost (opts key &optional value)
+  (ecase key
+    (:get (parse_options_get_disjunct_cost (handle opts)))
+    (:set (parse_options_set_disjunct_cost (handle opts) value))
+    (:setp t)
+    (:unset (values))))
+
+(defun virt-min-null-count (opts key &optional value)
+  (ecase key
+    (:get (parse_options_get_min_null_count (handle opts)))
+    (:set (parse_options_set_min_null_count (handle opts) value))
+    (:setp t)
+    (:unset (values))))
+
+(defun virt-max-null-count (opts key &optional value)
+  (ecase key
+    (:get (parse_options_get_max_null_count (handle opts)))
+    (:set (parse_options_set_max_null_count (handle opts) value))
+    (:setp t)
+    (:unset (values))))
+
+(defun virt-islandsp (opts key &optional value)
+  (ecase key
+    (:get (parse_options_get_islands_ok (handle opts)))
+    (:set (parse_options_set_islands_ok (handle opts) value))
+    (:setp t)
+    (:unset (values))))
+
+(defun virt-short-length (opts key &optional value)
+  (ecase key
+    (:get (parse_options_get_short_length (handle opts)))
+    (:set (parse_options_set_short_length (handle opts) value))
+    (:setp t)
+    (:unset (values))))
+
+(defun virt-max-memory (opts key &optional value)
+  (ecase key
+    (:get (parse_options_get_max_memory (handle opts)))
+    (:set (parse_options_set_max_memory (handle opts) value))
+    (:setp t)
+    (:unset (values))))
+
+(defun virt-max-parse-time (opts key &optional value)
+  (ecase key
+    (:get (parse_options_get_max_parse_time (handle opts)))
+    (:set (parse_options_set_max_parse_time (handle opts) value))
+    (:setp t)
+    (:unset (values))))
+
+(defun virt-cost-model-type (opts key &optional value)
+  (ecase key
+    (:get (parse_options_get_cost_model_type (handle opts)))
+    (:set (parse_options_set_cost_model_type (handle opts) value))
+    (:setp t)
+    (:unset (values))))
+
+(defun virt-display-morphology-p (opts key &optional value)
+  (ecase key
+    (:get (parse_options_get_display_morphology (handle opts)))
+    (:set (parse_options_set_display_morphology (handle opts) value))
+    (:setp t)
+    (:unset (values))))
+
+(defun virt-spell-guess-p (opts key &optional value)
+  (ecase key
+    (:get (parse_options_get_spell_guess (handle opts)))
+    (:set (parse_options_set_spell_guess (handle opts) value))
+    (:setp t)
+    (:unset (values))))
+
+(defun virt-short-connectors-p (opts key &optional value)
+  (ecase key
+    (:get (parse_options_get_all_short_connectors (handle opts)))
+    (:set (parse_options_set_all_short_connectors (handle opts) value))
+    (:setp t)
+    (:unset (values))))
 
 (defmethod initialize-instance :after ((this dictionary) &rest initargs)
   (destructuring-bind (&key lang) initargs
