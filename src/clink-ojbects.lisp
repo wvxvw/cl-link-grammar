@@ -149,55 +149,55 @@
    (verbosity :initarg :verbosity
               :accessor :verbosity
               :allocation :virtual
-              :function 'virt-verbosity)
+              :function virt-verbosity)
    (linkage-limit :initarg :linkage-limit
                   :accessor linkage-limit
                   :allocation :virtual
-                  :function 'virt-linkage-limit)
+                  :function virt-linkage-limit)
    (disjunct-cost :initarg :disjcunct-cost
                   :accessor disjunct_cost
                   :allocation :virtual
-                  :function 'virt-disjunct-cost)
+                  :function virt-disjunct-cost)
    (min-null-count :initarg :min-null-count
                    :accessor min-null-count
                    :allocation :virtual
-                   :function 'virt-min-null-count)
+                   :function virt-min-null-count)
    (max-null-count :initarg :max-null-count
                    :accessor max-null-count
                    :allocation :virtual
-                   :function 'virt-max-null-count)
+                   :function virt-max-null-count)
    (islandsp :initarg :islandsp
              :accessor islandsp
              :allocation :virtual
-             :function 'virt-islandsp)
+             :function virt-islandsp)
    (short-length :initarg :short-length
                  :accessor short-length
                  :allocation :virtual
-                 :function 'virt-short-length)
+                 :function virt-short-length)
    (max-memory :initarg :max-memory
                :accessor max-memory
                :allocation :virtual
-               :function 'virt-max-memory)
+               :function virt-max-memory)
    (max-parse-time :initarg :max-parse-time
                    :accessor max-parse-time
                    :allocation :virtual
-                   :function 'virt-max-parse-time)
+                   :function virt-max-parse-time)
    (cost-model-type :initarg :cost-model-type
                     :accessor cost-model-type
                     :allocation :virtual
-                    :function 'virt-cost-model-type)
+                    :function virt-cost-model-type)
    (display-morphology-p :initarg :display-morphology-p
                          :accessor display-morphology-p
                          :allocation :virtual
-                         :function 'virt-display-morphology-p)
+                         :function virt-display-morphology-p)
    (spell-guess-p :initarg :spell-guess-p
                   :accessor spell-guess-p
                   :allocation :virtual
-                  :function 'virt-spell-guess-p)
+                  :function virt-spell-guess-p)
    (all-short-connectors-p :initarg :all-short-connectors-p
                            :accessor all-short-connectors-p
                            :allocation :virtual
-                           :function 'virt-short-connectors-p))
+                           :function virt-short-connectors-p))
   (:metaclass virtual-metaclass)
   (:documentation
    "@short{This class maps to @code{Parse_Options} C++ class. It uses

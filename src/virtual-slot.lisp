@@ -80,23 +80,20 @@
 (defmethod closer-mop:slot-value-using-class 
     ((class virtual-metaclass) object slotd)
   (if (typep slotd 'virtual-slot-definition)
-      (funcall (cadr (virtual-slot-definition-function slotd)) object :get)
+      (funcall (virtual-slot-definition-function slotd) object :get)
       (call-next-method)))
 
 (defmethod (setf closer-mop:slot-value-using-class) 
     (value (class virtual-metaclass) object slotd)
   (if (typep slotd 'virtual-slot-definition)
-      ;; This is ugly and probably not portable, but what if?
-      ;; This may be due to quoting in the `:function' initarg
-      ;; maybe I won't need to `cadr', if I don't quote
-      (funcall (cadr (virtual-slot-definition-function slotd))
+      (funcall (virtual-slot-definition-function slotd)
                object :set value)
       (call-next-method)))
 
 (defmethod closer-mop:slot-boundp-using-class 
     ((class virtual-metaclass) object slotd)
   (if (typep slotd 'virtual-slot-definition)
-      (funcall (cadr (virtual-slot-definition-function slotd)) object :setp)
+      (funcall (virtual-slot-definition-function slotd) object :setp)
       (call-next-method)))
 
 (defmethod closer-mop:slot-makunbound-using-class 
