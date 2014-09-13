@@ -83,9 +83,9 @@
                         :serial t
                         :components
                         ((:file "package")
-                         (:file "clinkgrammar")
+                         (:file "wrapper")
                          (:file "virtual-slot")
-                         (:file "clink-ojbects"))))
+                         (:file "objects"))))
   :description "Bindings for link-grammar parser:
                 http://www.abisource.com/projects/link-grammar/"
   :long-description
@@ -131,6 +131,6 @@
 
 ;;;;@include "src/package.lisp"
 
-;;;;@include "src/clinkgrammar.lisp"
+;;;;@include "src/wrapper.lisp"
 
-;;;;@include "src/clink-ojbects.lisp"
+;;;;@include "src/ojbects.lisp"

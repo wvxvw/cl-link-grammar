@@ -45,4 +45,4 @@ LEFT-WALL computers.n are.v useless.a ; they can.v only give.v you answers.n --.
                     (lg:with-sentence (sent saying)
                       (lg:split sent opts)
                       (lg:with-linkage (link)
-                        (string= dia (print-diagram link)))))))))))
+                        (string= dia (lg:print-diagram link)))))))))))

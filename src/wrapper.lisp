@@ -65,15 +65,15 @@
 
 
 (cffi:defcenum ConstituentDisplayStyle
-	(:NO_DISPLAY #.0)
-	(:MULTILINE #.1)
-	(:BRACKET_TREE #.2)
-	(:SINGLE_LINE #.3)
-	(:MAX_STYLES #.3))
+	(:no-display #.0)
+	(:multiline #.1)
+	(:bracket-tree #.2)
+	(:single-line #.3)
+	(:max-styles #.3))
 
 (cffi:defcenum Cost_Model_type
-	(:VDAL #.1)
-	:CORPUS)
+	(:vdal #.1)
+	:corpus)
 
 (cffi:defcfun ("linkgrammar_get_version" linkgrammar_get_version) :string)
 

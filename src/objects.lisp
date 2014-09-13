@@ -1,25 +1,315 @@
-;; -*- mode: lisp; package: link-grammar -*-
+;; -*- mode: lisp; package: link-grammar; fill-column: 80 -*-
 
 (in-package :link-grammar)
 
-(defvar *link-index* 0)
-(defvar *sentence-index* 0)
+;; * special variables
+
 (defvar *dictionary* nil)
 (defvar *options* nil)
 (defvar *sentence* nil)
 (defvar *linkage* nil)
 
+;; * sentence definition
+
+;; ** slot documentation
+
+(defgeneric length (instance)
+  (:documentation
+   "@arg[instance]{a @class{sentence}}
+    @returns{The number of words in the tokenized sentence, including the
+    boundary words and punctuation.}
+    @short{There needs to be an example here}
+    @see{words}"))
+
+(defgeneric null-count (instance)
+  (:documentation
+   "@arg[instance]{a @class{sentence}}
+    @returns{The number of null links that were used in parsing the sentence.}
+    @short{Null-links are usually an indicator that the parsing misidentified
+      something about the sentence.  Thus higher null-count would call indicate
+      either a parsing problem, or that a sentence was originally
+      ungrammatical.}"))
+
+(defgeneric num-linkages-found (instance)
+  (:documentation
+   "@arg[instance]{a @class{sentence}}
+    @returns{The total number of linkages found when parsing the sentence.}
+    @short{This also includes linkages which required post-processor attention
+      and those which didn't.}
+    @see{num-valid-linkages}
+    @see{num-linkages-postprocessed}"))
+
+(defgeneric num-valid-linkages (instance)
+  (:documentation
+   "@arg[instance]{a @class{sentence}}
+    @returns{The number of linkages found while parsing the sentence, which were
+      unaltered during post-processing.}
+    @short{The last step at parsing the sentence is the post-processing.  During
+      this step linkages may be altered.  This counts only those linkages, which
+      weren't altered by post-processor.}"))
+
+(defgeneric num-linkages-post-processed (instance)
+  (:documentation
+   "@arg[instance]{a @class{sentence}}
+    @returns{The number of linkages altered by the post-processing parsing step.}
+    @short{This counts the linkages which had to be altered by the post-processor.
+      This is not necessary an indication of a problem with a sentence, however an
+      ungrammatic sentence is more likely to produce a higher count of
+      post-processor corrections.}"))
+
+;; ** defclass
+
 (closer-mop:defclass sentence (closer-mop:standard-object)
-  ((handle :initarg :handle :accessor handle))
+  ((handle :initarg :handle :accessor handle)
+   (length :reader length
+           :allocation :virtual
+           :function sent-length)
+   (null-count :reader null-count
+               :allocation :virtual
+               :function sent-null-count)
+   (num-linkages-found :reader num-linkages-found
+                       :allocation :virtual
+                       :function sent-num-linkages-found)
+   (num-valid-linkages :reader num-valid-linkages
+                       :allocation :virtual
+                       :function sent-num-valid-linkages)
+   (num-linkages-post-processed :reader num-linkages-post-processed
+                                :allocation :virtual
+                                :function sent-num-linkages-post-processed))
   (:metaclass virtual-metaclass))
 
+;; ** virtual slot support functions
+
+(defun sent-length (sent key &optional value)
+  (ecase key
+    (:get (sentence_length (handle sent)))
+    (:set (error "Slot is read-only"))
+    (:setp t)
+    (:unset (values))))
+
+(defun sent-null-count (sent key &optional value)
+  (ecase key
+    (:get (sentence_null_count (handle sent)))
+    (:set (error "Slot is read-only"))
+    (:setp t)
+    (:unset (values))))
+
+(defun sent-num-linkages-found (sent key &optional value)
+  (ecase key
+    (:get (sentence_num_linkages_found (handle sent)))
+    (:set (error "Slot is read-only"))
+    (:setp t)
+    (:unset (values))))
+
+(defun sent-num-valid-linkages (sent key &optional value)
+  (ecase key
+    (:get (sentence_num_valid_linkages (handle sent)))
+    (:set (error "Slot is read-only"))
+    (:setp t)
+    (:unset (values))))
+
+(defun sent-num-linkages-post-processed (sent key &optional value)
+  (ecase key
+    (:get (sentence_num_linkages_post_processed (handle sent)))
+    (:set (error "Slot is read-only"))
+    (:setp t)
+    (:unset (values))))
+
+;; * linkage definition
+
+;; ** slot documentation
+
+(defgeneric sentence (instance)
+  (:documentation
+   "@arg[instance]{a @class{linkage}}
+    @returns{The @class{sentence} to which this linkage belongs.}
+    @short{Once sentence is parsed successfully, there will be multiple
+      @class{linkage} objects associated with the words of the sentence.  This
+      is a reference back to the sentence which created this linkage.}"))
+
+(defgeneric num-words (instance)
+  (:documentation
+   "@arg[instance]{a @class{linkage}}
+    @returns{The number of words in the @code{sentence}.}
+    @short{The number of words in the sentence for which this is a linkage. Note
+      that this function does @em{not} return the number of words used in the
+      current sublinkage.}"))
+
+(defgeneric num-links (instance)
+  (:documentation
+   "@arg[instance]{a @class{linkage}}
+    @returns{The number of links used in the current sublinkage.}
+    @short{The number of links used in the current sublinkage.}"))
+
+(defgeneric words (instance)
+  (:documentation
+   "@arg[instance]{a @class{linkage}}
+    @returns{A list of inflected words of the sublinkage.}
+    @short{Returns a list of word spellings for the current sublinkage. These
+      are the @code{\"inflected\"} spellings, such as @code{\"dog.n\"}. The
+      original spellings can be obtained by calls to @code{(word sent
+      wordnum)}.}"))
+
+(defgeneric unused-word-cost (instance)
+  (:documentation
+   "@arg[instance]{a @class{linkage}}
+    @returns{A parameter used in post-processing.}
+    @short{For more information see the dictionary documentation and source
+      code.}"))
+
+(defgeneric link-cost (instance)
+  (:documentation
+   "@arg[instance]{a @class{linkage}}
+    @returns{A parameter used in post-processing.}
+    @short{For more information see the dictionary documentation and source
+      code.}"))
+
+(defgeneric corpus-cost (instance)
+  (:documentation
+   "@arg[instance]{a @class{linkage}}
+    @returns{The total cost of this particular linkage, based on the cost of
+      disjuncts stored in the corpus-statistics database.}
+    @short{For more information see the dictionary documentation and source
+      code.}"))
+
+(defgeneric violation-name (instance)
+  (:documentation
+   "@arg[instance]{a @class{linkage}}
+    @returns{A name of the violated rule as specified in the post-process
+      knowledge file.}
+    @short{If the linkage violated any post-processing rules, this slot will
+      contain the name of the violated rule in the post-process knowledge
+      file.}"))
+
+;; ** defclass
+
 (closer-mop:defclass linkage (closer-mop:standard-object)
-  ((handle :initarg :handle :accessor handle))
-  (:metaclass virtual-metaclass))
+  ((handle :initarg :handle :accessor handle)
+   (sentence :reader sentence
+             :allocation :virtual
+             :function link-sentence)
+   (num-words :reader num-words
+              :allocation :virtual
+              :function link-num-words)
+   (num-links :reader num-links
+              :allocation :virtual
+              :function link-num-links)
+   (words :reader words
+          :allocation :virtual
+          :function link-words)
+   (unused-word-cost :reader unused-word-cost
+                     :allocation :virtual
+                     :function link-unused-word-cost)
+   (disjunct-cost :reader disjunct-cost
+                  :allocation :virtual
+                  :function link-disjunct-cost)
+   (link-cost :reader link-cost
+              :allocation :virtual
+              :function link-link-cost)
+   (corpus-cost :reader corpus-cost
+                :allocation :virtual
+                :function link-corpus-cost)
+   (violation-name :reader violation-name
+                   :allocation :virtual
+                   :function link-violation-name))
+  (:metaclass virtual-metaclass)
+  (:documentation
+   "@short{This class maps to @code{Linkage} C++ class.}
+
+    It uses @code{virtual-metaclass} metaclass for all slots but the pointer to
+    the object in C++ environment. This means that it doesn't store the
+    information in its slots, rather it delegates the calls to slots to C++
+    code.
+
+    @see-slot{sentence}
+    @see-slot{num-words}
+    @see-slot{num-links}
+    @see-slot{words}
+    @see-slot{unused-word-cost}
+    @see-slot{disjunct-cost}
+    @see-slot{link-cost}
+    @see-slot{corpus-cost}
+    @see-slot{violation-name}
+"))
+
+;; ** virtual slot support functions
+
+(defun link-sentence (linkage key &optional value)
+  (ecase key
+    (:get (linkage_get_sentence (handle linkage)))
+    (:set (error "slot is read-only"))
+    (:setp t)
+    (:unset (values))))
+
+(defun link-num-words (linkage key &optional value)
+  (ecase key
+    (:get (linkage_get_num_words (handle linkage)))
+    (:set (error "slot is read-only"))
+    (:setp t)
+    (:unset (values))))
+
+(defun link-num-links (linkage key &optional value)
+  (ecase key
+    (:get (linkage_get_num_links (handle linkage)))
+    (:set (error "slot is read-only"))
+    (:setp t)
+    (:unset (values))))
+
+(defun link-words (linkage key &optional value)
+  (ecase key
+    (:get
+     (iter
+       (with words := (linkage_get_words (handle linkage)))
+       (for i :below (linkage_get_num_words (handle linkage)))
+       (collect (mem-aref words :string i))))
+    (:set (error "slot is read-only"))
+    (:setp t)
+    (:unset (values))))
+
+(defun link-unused-word-cost (linkage key &optional value)
+  (ecase key
+    (:get (parse_options_get_min_null_count (handle opts)))
+    (:set (error "slot is read-only"))
+    (:setp t)
+    (:unset (values))))
+
+(defun link-disjunct-cost (linkage key &optional value)
+  (ecase key
+    (:get (parse_options_get_min_null_count (handle opts)))
+    (:set (error "slot is read-only"))
+    (:setp t)
+    (:unset (values))))
+
+(defun link-link-cost (linkage key &optional value)
+  (ecase key
+    (:get (parse_options_get_min_null_count (handle opts)))
+    (:set (error "slot is read-only"))
+    (:setp t)
+    (:unset (values))))
+
+(defun link-corpus-cost (linkage key &optional value)
+  (ecase key
+    (:get (parse_options_get_min_null_count (handle opts)))
+    (:set (error "slot is read-only"))
+    (:setp t)
+    (:unset (values))))
+
+(defun link-violation-name (linkage key &optional value)
+  (ecase key
+    (:get (parse_options_get_min_null_count (handle opts)))
+    (:set (error "slot is read-only"))
+    (:setp t)
+    (:unset (values))))
+
+;; * dictionary definition
 
 (closer-mop:defclass dictionary (closer-mop:standard-object)
   ((language :initarg :lang :accessor language))
   (:metaclass virtual-metaclass))
+
+;; * parse-options definition
+
+;; ** slot documentation
 
 (defgeneric verbosity (instance)
   (:documentation
@@ -41,15 +331,19 @@
     @code{linkage-limit} is chosen for post-processing. When this
     happen a warning is displayed at verbosity levels bigger than 1."))
 
-(defgeneric disjunct-cost (instance &optional index)
+(defgeneric disjunct-cost (instance)
   (:documentation
-   "@arg[instance]{a @class{parse-options}}
-    @return{The maximum number of links a parser will try to find in
-      a sentence it parses.}
+   "@arg[instance]{a @class{parse-options} or a @class{linkage}}
+    @return{If instance is a @class{parse-options} -- the maximum
+      number of links a parser will try to find in a sentence it
+      parses. If instance is a @class{linkage} -- a parameter used in
+      post-processing.}
     @short{Determines the maximum disjunct cost used during
     parsing, where the cost of a disjunct is equal to the maximum cost
     of all of its connectors. The default is that all disjuncts, no
-    matter what their cost, are considered.}"))
+    matter what their cost, are considered.
+
+    For more information see the dictionary documentation and source code.}"))
 
 (defgeneric max-null-count (instance)
   (:documentation
@@ -144,67 +438,70 @@
     them -- they can be no farther than @code{short-length} apart. This is
     used when parsing in \"panic\" mode, for example.}"))
 
+;; ** defclass
+
 (closer-mop:defclass parse-options (closer-mop:standard-object)
   ((handle :initarg :handle :accessor handle)
    (verbosity :initarg :verbosity
               :accessor :verbosity
               :allocation :virtual
-              :function virt-verbosity)
+              :function opts-verbosity)
    (linkage-limit :initarg :linkage-limit
                   :accessor linkage-limit
                   :allocation :virtual
-                  :function virt-linkage-limit)
+                  :function opts-linkage-limit)
    (disjunct-cost :initarg :disjcunct-cost
                   :accessor disjunct_cost
                   :allocation :virtual
-                  :function virt-disjunct-cost)
+                  :function opts-disjunct-cost)
    (min-null-count :initarg :min-null-count
                    :accessor min-null-count
                    :allocation :virtual
-                   :function virt-min-null-count)
+                   :function opts-min-null-count)
    (max-null-count :initarg :max-null-count
                    :accessor max-null-count
                    :allocation :virtual
-                   :function virt-max-null-count)
+                   :function opts-max-null-count)
    (islandsp :initarg :islandsp
              :accessor islandsp
              :allocation :virtual
-             :function virt-islandsp)
+             :function opts-islandsp)
    (short-length :initarg :short-length
                  :accessor short-length
                  :allocation :virtual
-                 :function virt-short-length)
+                 :function opts-short-length)
    (max-memory :initarg :max-memory
                :accessor max-memory
                :allocation :virtual
-               :function virt-max-memory)
+               :function opts-max-memory)
    (max-parse-time :initarg :max-parse-time
                    :accessor max-parse-time
                    :allocation :virtual
-                   :function virt-max-parse-time)
+                   :function opts-max-parse-time)
    (cost-model-type :initarg :cost-model-type
                     :accessor cost-model-type
                     :allocation :virtual
-                    :function virt-cost-model-type)
+                    :function opts-cost-model-type)
    (display-morphology-p :initarg :display-morphology-p
                          :accessor display-morphology-p
                          :allocation :virtual
-                         :function virt-display-morphology-p)
+                         :function opts-display-morphology-p)
    (spell-guess-p :initarg :spell-guess-p
                   :accessor spell-guess-p
                   :allocation :virtual
-                  :function virt-spell-guess-p)
+                  :function opts-spell-guess-p)
    (all-short-connectors-p :initarg :all-short-connectors-p
                            :accessor all-short-connectors-p
                            :allocation :virtual
-                           :function virt-short-connectors-p))
+                           :function opts-short-connectors-p))
   (:metaclass virtual-metaclass)
   (:documentation
-   "@short{This class maps to @code{Parse_Options} C++ class. It uses
-        @code{virtual-metaclass} metaclass for all slots but the
-        pointer to the object in C++ environment. This means that it
-        doesn't store the information in its slots, rather it
-        delegates the calls to slots to C++ code.}
+   "@short{This class maps to @code{Parse_Options} C++ class.}
+
+    It uses @code{virtual-metaclass} metaclass for all slots but the pointer to
+    the object in C++ environment. This means that it doesn't store the
+    information in its slots, rather it delegates the calls to slots to C++
+    code.
 
     @see-slot{verbosity}
     @see-slot{linkage-limit}
@@ -221,96 +518,100 @@
     @see-slot{all-short-connectors-p}
 "))
 
-(defun virt-verbosity (opts key &optional value)
+;; ** virtual slot support functions
+
+(defun opts-verbosity (opts key &optional value)
   (ecase key
     (:get (parse_options_get_verbosity (handle opts)))
     (:set (parse_options_set_verbosity (handle opts) value))
     (:setp t)
     (:unset (values))))
 
-(defun virt-linkage-limit (opts key &optional value)
+(defun opts-linkage-limit (opts key &optional value)
   (ecase key
     (:get (parse_options_get_linkage_limit (handle opts)))
     (:set (parse_options_set_linkage_limit (handle opts) value))
     (:setp t)
     (:unset (values))))
 
-(defun virt-disjunct-cost (opts key &optional value)
+(defun opts-disjunct-cost (opts key &optional value)
   (ecase key
     (:get (parse_options_get_disjunct_cost (handle opts)))
     (:set (parse_options_set_disjunct_cost (handle opts) value))
     (:setp t)
     (:unset (values))))
 
-(defun virt-min-null-count (opts key &optional value)
+(defun opts-min-null-count (opts key &optional value)
   (ecase key
     (:get (parse_options_get_min_null_count (handle opts)))
     (:set (parse_options_set_min_null_count (handle opts) value))
     (:setp t)
     (:unset (values))))
 
-(defun virt-max-null-count (opts key &optional value)
+(defun opts-max-null-count (opts key &optional value)
   (ecase key
     (:get (parse_options_get_max_null_count (handle opts)))
     (:set (parse_options_set_max_null_count (handle opts) value))
     (:setp t)
     (:unset (values))))
 
-(defun virt-islandsp (opts key &optional value)
+(defun opts-islandsp (opts key &optional value)
   (ecase key
     (:get (parse_options_get_islands_ok (handle opts)))
     (:set (parse_options_set_islands_ok (handle opts) value))
     (:setp t)
     (:unset (values))))
 
-(defun virt-short-length (opts key &optional value)
+(defun opts-short-length (opts key &optional value)
   (ecase key
     (:get (parse_options_get_short_length (handle opts)))
     (:set (parse_options_set_short_length (handle opts) value))
     (:setp t)
     (:unset (values))))
 
-(defun virt-max-memory (opts key &optional value)
+(defun opts-max-memory (opts key &optional value)
   (ecase key
     (:get (parse_options_get_max_memory (handle opts)))
     (:set (parse_options_set_max_memory (handle opts) value))
     (:setp t)
     (:unset (values))))
 
-(defun virt-max-parse-time (opts key &optional value)
+(defun opts-max-parse-time (opts key &optional value)
   (ecase key
     (:get (parse_options_get_max_parse_time (handle opts)))
     (:set (parse_options_set_max_parse_time (handle opts) value))
     (:setp t)
     (:unset (values))))
 
-(defun virt-cost-model-type (opts key &optional value)
+(defun opts-cost-model-type (opts key &optional value)
   (ecase key
     (:get (parse_options_get_cost_model_type (handle opts)))
     (:set (parse_options_set_cost_model_type (handle opts) value))
     (:setp t)
     (:unset (values))))
 
-(defun virt-display-morphology-p (opts key &optional value)
+(defun opts-display-morphology-p (opts key &optional value)
   (ecase key
     (:get (parse_options_get_display_morphology (handle opts)))
     (:set (parse_options_set_display_morphology (handle opts) value))
     (:setp t)
     (:unset (values))))
 
-(defun virt-spell-guess-p (opts key &optional value)
+(defun opts-spell-guess-p (opts key &optional value)
   (ecase key
     (:get (parse_options_get_spell_guess (handle opts)))
     (:set (parse_options_set_spell_guess (handle opts) value))
     (:setp t)
     (:unset (values))))
 
-(defun virt-short-connectors-p (opts key &optional value)
+(defun opts-short-connectors-p (opts key &optional value)
   (ecase key
     (:get (parse_options_get_all_short_connectors (handle opts)))
     (:set (parse_options_set_all_short_connectors (handle opts) value))
     (:setp t)
     (:unset (values))))
+
+;; ** constructor
 
 (defmethod initialize-instance :after ((this dictionary) &rest initargs)
   (destructuring-bind (&key lang) initargs
@@ -321,12 +622,14 @@
               (dictionary_create_lang lang)
               (dictionary_create_default_lang)))))
 
+;; * utility macros
+
 (defun data-dir () (dictionary_get_data_dir))
 
 (defmacro with-dictionary ((dictionary &optional language data-dir) &body body)
   "@arg[dictionary]{A symbol to bind to the @class{dictionary}, in addition to
-      this symbol *dictionary* special variable will be also bound to the currently
-      active dictionary}
+      this symbol *dictionary* special variable will be also bound to the
+      currently active dictionary}
    @arg[language]{Language code (optional)}
    @arg[data-dir]{Directory to look up for dictionary files (optional)}
    @arg[body]{Forms to bind the @code{dictionary} in}
@@ -396,21 +699,15 @@
          (parse_options_delete (handle ,opts))
          (setf *options* nil)))))
 
-(defmacro with-ith-link (index &body body)
-  `(let ((*link-index* ,index))
-     ,@body))
-
-(defmacro with-ith-sentence (index &body body)
-  `(let ((*sentence-index* index))
-     ,@body))
+;; * utility methods
 
 (defmethod timer-expired-p ((this parse-options))
   (parse_options_timer_expired (handle this)))
 
-(defmethod memory-exhausted ((this parse-options))
+(defmethod memory-exhausted-p ((this parse-options))
   (parse_options_memory_exhausted (handle this)))
 
-(defmethod resource-exhausted ((this parse-options))
+(defmethod resource-exhausted-p ((this parse-options))
   (parse_options_resources_exhausted (handle this)))
 
 (defmethod reset-resources ((this parse-options))
@@ -426,12 +723,6 @@ the number of linkages found in it."
 the number of linkages found in it."
   (sentence_split (handle this) (handle options)))
 
-(defmethod sentence-length ((this sentence))
-  (sentence_length (handle this)))
-
-(defmethod null-count ((this sentence))
-  (sentence_null_count (handle this)))
-
 (defmethod linkages ((this sentence) &key (linkage-type :none))
   (let ((handle (handle this)))
     (case linkage-type
@@ -439,14 +730,37 @@ the number of linkages found in it."
       (:valid (sentence_num_valid_linkages handle))
       (:post-processed (sentence_num_linkages_post_processed handle)))))
 
-(defmethod violations ((this sentence) &optional (index *sentence-index*))
+(defmethod num-violations ((this sentence) index)
   (sentence_num_violations (handle sentence) index))
 
-(defmethod disjunct-cost ((this sentence) &optional (index *sentence-index*))
+(defmethod nth-disjunct-cost ((this sentence) index)
   (sentence_disjunct_cost (handle sentence) index))
 
-(defmethod link-cost ((this sentence) &optional (index *sentence-index*))
+(defmethod nth-link-cost ((this sentence) index)
   (sentence_link_cost (handle sentence) index))
+
+(defmethod left-word ((this linkage) index)
+  (linkage_get_link_lword (handle this) index))
+
+(defmethod right-word ((this linkage) index)
+  (linkage_get_link_rword (handle this)))
+
+(defmethod link-length ((this linkage) index)
+  (linkage_get_link_length (handle this) index))
+
+(defmethod link-label ((this linkage) index &key (direction :none))
+  (ecase direction
+    (:none (linkage_get_link_label (handle this) index))
+    (:left (linkage_get_link_llabel (handle this) index))
+    (:right (linkage_get_link_rlabel (handle this) index))))
+
+(defmethod num-domains ((this linkage) index)
+  (linkage_get_link_num_domains (handle this)))
+
+(defmethod domain-names ((this linkage) index)
+  (linkage_get_link_domain_names (handle this) index))
+
+;; * printing
 
 (defmethod print-diagram ((this linkage)
                           &optional display-wallsp
@@ -454,60 +768,18 @@ the number of linkages found in it."
   "Creates a diagram which shows the parse of THIS linkage.
 DISPLAY-WALLSP if true, will instruct to print the linkage margins (walls).
 SCREEN-WDITH by default, will try to guess the space needed to print the linkage."
-  (format t "~&screen-wdith: ~d" screen-wdith)
   (linkage_print_diagram (handle this) display-wallsp screen-wdith))
 
 (defmethod linkage-print-length ((this linkage))
   (iter
     (for word :in (words this))
-    (format t "~&word: ~s" word)
-    (summing (1+ (length word)) :into result)
+    (summing (1+ (cl:length word)) :into result)
     (finally (return (1- result)))))
 
-(defmethod print-postscript ((this linkage) display-wallsp screen-wdith)
+(defmethod print-postscript ((this linkage)
+                             &optional display-wallsp
+                               (screen-wdith (linkage-print-length this)))
   (linkage_print_postscript (handle this) display-wallsp screen-wdith))
-
-(defmethod sentence ((this linkage))
-  (linkage_get_sentence (handle this)))
-
-(defmethod num-words ((this linkage))
-  (linkage_get_num_words (handle this)))
-
-(defmethod num-links ((this linkage))
-  (linkage_get_num_links (handle this)))
-
-(defmethod left-word ((this linkage) &optional (index *link-index*))
-  (linkage_get_link_lword (handle this) index))
-
-(defmethod right-word ((this linkage) &optional (index *link-index*))
-  (linkage_get_link_rword (handle this)))
-
-(defmethod link-length ((this linkage) &optional (index *link-index*))
-  (linkage_get_link_length (handle this) index))
-
-(defmethod link-label ((this linkage)
-                       &optional (index *link-index*)
-                       &key (direction :none))
-  (ecase direction
-    (:none (linkage_get_link_label (handle this) index))
-    (:left (linkage_get_link_llabel (handle this) index))
-    (:right (linkage_get_link_rlabel (handle this) index))))
-
-(defmethod num-domains ((this linkage) &optional (index *link-index*))
-  (linkage_get_link_num_domains (handle this)))
-
-(defmethod domain-names ((this linkage) &optional (index *link-index*))
-  (linkage_get_link_domain_names (handle this) index))
-
-(defmethod words ((this linkage))
-  "Returns a list of words of THIS linkage"
-  (iter
-    (with words := (linkage_get_words (handle this)))
-    (for i :below (linkage_get_num_words (handle this)))
-    (collect (mem-aref words :string i))))
-
-(defmethod word ((this linkage) index)
-  (linkage_get_word (handle this) index))
 
 (defmethod print-links-and-domains ((this linkage))
   (linkage_print_links_and_domains (handle this)))
@@ -515,22 +787,14 @@ SCREEN-WDITH by default, will try to guess the space needed to print the linkage
 (defmethod print-senses ((this linkage))
   (linkage_print_senses (handle this)))
 
-(defmethod print-constituent-tree ((this linkage) &key mode)
-  (linkage_print_constituent_tree (handle this)))
+;; TODO: Investigate what does this tree look like and how exactly am I supposed
+;; to free it.
 
-(defmethod unused-word-cost ((this linkage))
-  (linkage_unused_word_cost (handle this)))
+(defmethod print-constituent-tree ((this linkage) &key (mode :no-display))
+  "The function linkage_constituent_tree returns a pointer to a tree; after
+using it the space should be freed-up with a call to
+linkage_free_constituent_tree."
+  (linkage_print_constituent_tree
+   (handle this)
+   (cffi:foreign-enum-value 'ConstituentDisplayStyle mode)))
 
-(defmethod disjunct-cost ((this linkage) &optional index)
-  (declare (ignore index))
-  (linkage_disjunct_cost (handle this)))
-
-(defmethod link-cost ((this linkage) &optional index)
-  (declare (ignore index))
-  (linkage_link_cost (handle this)))
-
-(defmethod corpus-cost ((this linkage))
-  (linkage_corpus_cost (handle this)))
-
-(defmethod violation-name ((this linkage))
-  (linkage_get_violation_name (handle this)))
