@@ -93,6 +93,9 @@
 
 (cffi:defcfun ("dictionary_get_data_dir" dictionary_get_data_dir) :string)
 
+(cffi:defcfun ("dictionary_get_lang" dictionary_get_lang) :string
+  (dict :pointer))
+
 (cffi:defcfun ("parse_options_create" parse_options_create) :pointer)
 
 (cffi:defcfun ("parse_options_delete" parse_options_delete) :int
@@ -251,12 +254,14 @@
 (cffi:defcfun ("linkage_delete" linkage_delete) :void
   (linkage :pointer))
 
-(cffi:defcfun ("linkage_print_diagram" linkage_print_diagram) :string
+(cffi:defcfun ("linkage_print_diagram" linkage_print_diagram)
+    (:string :free-from-foreign t)
   (linkage :pointer)
   (display_walls :boolean)
   (screen_width :int))
 
-(cffi:defcfun ("linkage_print_postscript" linkage_print_postscript) :string
+(cffi:defcfun ("linkage_print_postscript" linkage_print_postscript)
+    (:string :free-from-foreign t)
   (linkage :pointer)
   (display_walls :pointer)
   (print_ps_header :pointer))

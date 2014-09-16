@@ -77,7 +77,7 @@
   :author ("Zach Kost-Smith <zachkostsmith@gmail.com>"
            "Oleg Sivokon <olegsivokon@gmail.com>")
   :license "LGPL2"
-  :depends-on (:alexandria :iterate :cffi :closer-mop)
+  :depends-on (:alexandria :iterate :cffi :closer-mop :trivial-garbage)
   :serial t
   :components ((:module "src"
                         :serial t

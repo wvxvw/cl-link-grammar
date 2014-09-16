@@ -10,7 +10,6 @@
 (defvar *linkage* nil)
 
 ;; * sentence definition
-
 ;; ** slot documentation
 
 (defgeneric length (instance)
@@ -57,10 +56,11 @@
       ungrammatic sentence is more likely to produce a higher count of
       post-processor corrections.}"))
 
-;; ** defclass
+;; ** defclass sentence
 
 (closer-mop:defclass sentence (closer-mop:standard-object)
   ((handle :initarg :handle :accessor handle)
+   (input :initarg :input)
    (length :reader length
            :allocation :virtual
            :function sent-length)
@@ -81,6 +81,7 @@
 ;; ** virtual slot support functions
 
 (defun sent-length (sent key &optional value)
+  (declare (ignore value))
   (ecase key
     (:get (sentence_length (handle sent)))
     (:set (error "Slot is read-only"))
@@ -88,6 +89,7 @@
     (:unset (values))))
 
 (defun sent-null-count (sent key &optional value)
+  (declare (ignore value))
   (ecase key
     (:get (sentence_null_count (handle sent)))
     (:set (error "Slot is read-only"))
@@ -95,6 +97,7 @@
     (:unset (values))))
 
 (defun sent-num-linkages-found (sent key &optional value)
+  (declare (ignore value))
   (ecase key
     (:get (sentence_num_linkages_found (handle sent)))
     (:set (error "Slot is read-only"))
@@ -102,6 +105,7 @@
     (:unset (values))))
 
 (defun sent-num-valid-linkages (sent key &optional value)
+  (declare (ignore value))
   (ecase key
     (:get (sentence_num_valid_linkages (handle sent)))
     (:set (error "Slot is read-only"))
@@ -109,14 +113,23 @@
     (:unset (values))))
 
 (defun sent-num-linkages-post-processed (sent key &optional value)
+  (declare (ignore value))
   (ecase key
     (:get (sentence_num_linkages_post_processed (handle sent)))
     (:set (error "Slot is read-only"))
     (:setp t)
     (:unset (values))))
 
-;; * linkage definition
+;; ** constructor
 
+(defun make-sentence (input)
+  (let ((result (make-instance 'sentence :input input)))
+    (when (cffi:null-pointer-p (handle result))
+      (error "Couldn't create sentence"))
+    (tg:finalize
+     result (lambda () (sentence_delete (handle result))))))
+
+;; * linkage definition
 ;; ** slot documentation
 
 (defgeneric sentence (instance)
@@ -181,7 +194,7 @@
       contain the name of the violated rule in the post-process knowledge
       file.}"))
 
-;; ** defclass
+;; ** defclass linkage
 
 (closer-mop:defclass linkage (closer-mop:standard-object)
   ((handle :initarg :handle :accessor handle)
@@ -235,6 +248,7 @@
 ;; ** virtual slot support functions
 
 (defun link-sentence (linkage key &optional value)
+  (declare (ignore value))
   (ecase key
     (:get (linkage_get_sentence (handle linkage)))
     (:set (error "slot is read-only"))
@@ -242,6 +256,7 @@
     (:unset (values))))
 
 (defun link-num-words (linkage key &optional value)
+  (declare (ignore value))
   (ecase key
     (:get (linkage_get_num_words (handle linkage)))
     (:set (error "slot is read-only"))
@@ -249,6 +264,7 @@
     (:unset (values))))
 
 (defun link-num-links (linkage key &optional value)
+  (declare (ignore value))
   (ecase key
     (:get (linkage_get_num_links (handle linkage)))
     (:set (error "slot is read-only"))
@@ -256,6 +272,7 @@
     (:unset (values))))
 
 (defun link-words (linkage key &optional value)
+  (declare (ignore value))
   (ecase key
     (:get
      (iter
@@ -267,48 +284,83 @@
     (:unset (values))))
 
 (defun link-unused-word-cost (linkage key &optional value)
+  (declare (ignore value))
   (ecase key
-    (:get (parse_options_get_min_null_count (handle opts)))
+    (:get (linkage_unused_word_cost (handle linkage)))
     (:set (error "slot is read-only"))
     (:setp t)
     (:unset (values))))
 
 (defun link-disjunct-cost (linkage key &optional value)
+  (declare (ignore value))
   (ecase key
-    (:get (parse_options_get_min_null_count (handle opts)))
+    (:get (linkage_disjunct_cost (handle opts)))
     (:set (error "slot is read-only"))
     (:setp t)
     (:unset (values))))
 
 (defun link-link-cost (linkage key &optional value)
+  (declare (ignore value))
   (ecase key
-    (:get (parse_options_get_min_null_count (handle opts)))
+    (:get (linkage_link_cost (handle opts)))
     (:set (error "slot is read-only"))
     (:setp t)
     (:unset (values))))
 
 (defun link-corpus-cost (linkage key &optional value)
+  (declare (ignore value))
   (ecase key
-    (:get (parse_options_get_min_null_count (handle opts)))
+    (:get (linkage_corpus_cost (handle opts)))
     (:set (error "slot is read-only"))
     (:setp t)
     (:unset (values))))
 
 (defun link-violation-name (linkage key &optional value)
+  (declare (ignore value))
   (ecase key
-    (:get (parse_options_get_min_null_count (handle opts)))
+    (:get (linkage_get_violation_name (handle opts)))
     (:set (error "slot is read-only"))
     (:setp t)
     (:unset (values))))
 
+;; ** constructor
+
+(defun make-linkage (index sentence options)
+  (let ((result (make-instance
+                 'sentence
+                 :handle (linkage_create
+                          index (handle sentence) (handle options)))))
+    (when (cffi:null-pointer-p (handle result))
+      (error "Couldn't create sentence"))
+    (tg:finalize
+     result (lambda () (sentence_delete (handle result))))))
+
 ;; * dictionary definition
 
+;; ** defclass dictionary
 (closer-mop:defclass dictionary (closer-mop:standard-object)
-  ((language :initarg :lang :accessor language))
+  ((handle :initarg :handle :accessor handle)
+   (language :allocation :virtual :function dict-language))
   (:metaclass virtual-metaclass))
 
-;; * parse-options definition
+(defun dict-language (dict key &optional value)
+  (declare (ignore value))
+  (ecase key
+    (:get (dictionary_get_lang (handle dict)))
+    (:set (error "Slot is read-only"))
+    (:setp t)
+    (:unset (values))))
 
+;; * constructor
+
+(defun make-dictionary (&optional language)
+  (let ((result (make-instance 'dictionary :language language)))
+    (when (cffi:null-pointer-p (handle result))
+      (error "Couldn't create dictionary"))
+    (tg:finalize
+     result (lambda () (dictionary_delete (handle result))))))
+
+;; * parse-options definition
 ;; ** slot documentation
 
 (defgeneric verbosity (instance)
@@ -438,7 +490,7 @@
     them -- they can be no farther than @code{short-length} apart. This is
     used when parsing in \"panic\" mode, for example.}"))
 
-;; ** defclass
+;; ** defclass parse-options
 
 (closer-mop:defclass parse-options (closer-mop:standard-object)
   ((handle :initarg :handle :accessor handle)
@@ -613,14 +665,36 @@
 
 ;; ** constructor
 
-(defmethod initialize-instance :after ((this dictionary) &rest initargs)
-  (destructuring-bind (&key lang) initargs
-    ;; It looks like it's also might be necessary to call `setlocale'
-    ;; to ensure the dictionary files are red properly.
-    (setf (language this)
-          (if lang
-              (dictionary_create_lang lang)
-              (dictionary_create_default_lang)))))
+(defun make-parse-options (&key verbosity
+                             linkage-limit
+                             disjunct-cost
+                             min-null-count
+                             max-null-count
+                             islandsp
+                             short-length
+                             max-memory
+                             max-parse-time
+                             cost-model-type
+                             display-morphology-p
+                             spell-guess-p
+                             all-short-connectors-p)
+  (let ((result (make-instance 'parse-options  :verbosity verbosity
+                               :linkage-limit linkage-limit
+                               :disjunct-cost disjunct-cost
+                               :min-null-count min-null-count
+                               :max-null-count max-null-count
+                               :islandsp islandsp
+                               :short-length short-length
+                               :max-memory max-memory
+                               :max-parse-time max-parse-time
+                               :cost-model-type cost-model-type
+                               :display-morphology-p display-morphology-p
+                               :spell-guess-p spell-guess-p
+                               :all-short-connectors-p all-short-connectors-p)))
+    (when (cffi:null-pointer-p (handle result))
+      (error "Couldn't create parse-options"))
+    (tg:finalize
+     result (lambda () (parse_options_delete (handle result))))))
 
 ;; * utility macros
 
@@ -638,34 +712,42 @@
    @short{Use this macro to create and manage @class{dictionary} objects.}
 
    @see{dictionary}"
-  (alexandria:with-gensyms (dir)
-    `(let (,dictionary)
+  (alexandria:with-gensyms (dir lang)
+    `(let ((,lang ,language) ,dictionary)
        (unwind-protect
             (let ((,dir ,data-dir))
               (when ,dir
                 (dictionary_set_data_dir
                  (translate-logical-pathname ,dir)))
-              (setf ,dictionary (make-instance 'dictionary :lang ,language)
+              (setf ,dictionary
+                    (make-instance
+                     'dictionary
+                     :handle
+                     (if ,lang
+                         (dictionary_create_lang ,lang)
+                         (dictionary_create_default_lang)))
                     *dictionary* ,dictionary)
               ,@body)
          (when ,dictionary
-           (dictionary_delete (language ,dictionary))
+           (dictionary_delete (handle ,dictionary))
            (setf *dictionary* nil))))))
 
 (defmacro with-sentence ((sentence raw-input &optional
                                    (dictionary '*dictionary*)) &body body)
-  `(let (,sentence)
-     (unwind-protect
-          (progn
-            (setf ,sentence
-                  (make-instance
-                   'sentence
-                   :handle (sentence_create ,raw-input (language ,dictionary)))
-                  *sentence* ,sentence)
-            ,@body)
-       (when ,sentence
-         (sentence_delete (handle ,sentence))
-         (setf *sentence* nil)))))
+  (alexandria:with-gensyms (input)
+    `(let ((,input ,raw-input) ,sentence)
+       (unwind-protect
+            (progn
+              (setf ,sentence
+                    (make-instance
+                     'sentence
+                     :handle (sentence_create ,input (handle ,dictionary))
+                     :input ,input)
+                    *sentence* ,sentence)
+              ,@body)
+         (when ,sentence
+           (sentence_delete (handle ,sentence))
+           (setf *sentence* nil))))))
 
 (defmacro with-linkage ((linkage &optional
                                  (index 0)
@@ -761,6 +843,51 @@ the number of linkages found in it."
   (linkage_get_link_domain_names (handle this) index))
 
 ;; * printing
+
+(defmethod print-object ((this dictionary) stream)
+  (print-unreadable-object (this stream :type t :identity t)
+    (format stream "~A" (dictionary_get_lang (handle this))))
+  this)
+
+(defmethod print-object ((this parse-options) stream)
+  (print-unreadable-object (this stream :type t :identity t)
+    (with-slots (verbosity linkage-limit disjunct-cost min-null-count
+                           max-null-count islandsp short-length max-memory
+                           max-parse-time cost-model-type display-morphology-p
+                           spell-guess-p all-short-connectors-p) this
+      
+      (format stream "{~{~A: ~A~^, ~}}"
+              (list :verbosity verbosity
+                    :linkage-limit linkage-limit
+                    :disjunct-cost disjunct-cost
+                    :min-null-count min-null-count
+                    :max-null-count max-null-count
+                    :islandsp islandsp
+                    :short-length short-length
+                    :max-memory max-memory
+                    :max-parse-time max-parse-time
+                    :cost-model-type cost-model-type
+                    :display-morphology-p display-morphology-p
+                    :spell-guess-p spell-guess-p
+                    :all-short-connectors-p all-short-connectors-p))))
+  this)
+
+(defmethod print-object ((this sentence) stream)
+  (print-unreadable-object (this stream :type t :identity t)
+    (with-slots (length null-count num-linkages-found
+                        num-valid-linkages num-linkages-post-processed) this
+      (format stream "~{~A~^, ~}"
+              (list :length length
+                    :null-count null-count
+                    :num-linkages-found num-linkages-found
+                    :num-valid-linkages num-valid-linkages
+                    :num-linkages-post-processed num-linkages-post-processed))))
+  this)
+
+(defmethod print-object ((this linkage) stream)
+  (print-unreadable-object (this stream :type t :identity t)
+    (format stream "~{~A~^, ~}" (words (handle this))))
+  this)
 
 (defmethod print-diagram ((this linkage)
                           &optional display-wallsp
