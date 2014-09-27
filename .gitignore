@@ -1,3 +1,5 @@
 *~
 doc/html/*
 doc/html/*/*
+/cl-link-grammar.tar.gz
+/cl-link-grammar/

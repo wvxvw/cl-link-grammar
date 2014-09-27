@@ -52,7 +52,7 @@
 ;;                  (format t "~&diagram:~&~s" (print-diagram link))))))))
 ;;
 ;; Generate documentation:
-;; (asdf:oos 'link-grammar-asd::doc-op :link-grammar)
+;; (asdf:oos 'lg-asd::doc-op :link-grammar)
 ;;
 ;; Run tests:
 ;; (asdf:oos 'asdf:test-op :link-grammar)
@@ -61,10 +61,11 @@
 ;;; Code:
 
 (in-package :cl)
-(defpackage link-grammar-asd
+(defpackage cl-link-grammar-asd
+  (:nicknames :lg-asd)
   (:use :cl :asdf)
   (:documentation "ASDF System package for link-grammar bindings."))
-(in-package :link-grammar-asd)
+(in-package :lg-asd)
 
 (defclass doc-op (asdf:operation) ())
 
@@ -72,7 +73,7 @@
   (funcall (intern (string '#:generate-htdoc) :link-grammar.doc)
            (asdf:component-pathname c)))
 
-(defsystem link-grammar
+(defsystem cl-link-grammar
   :version "0.1"
   :author ("Zach Kost-Smith <zachkostsmith@gmail.com>"
            "Oleg Sivokon <olegsivokon@gmail.com>")

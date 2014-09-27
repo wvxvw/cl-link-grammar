@@ -1,5 +1,5 @@
-(defpackage :link-grammar
-  (:nicknames :lg)
+(defpackage :cl-link-grammar
+  (:nicknames :link-grammar :lg)
   (:use :cl :iterate :cffi)
   (:shadow :length)
   ;; macros
