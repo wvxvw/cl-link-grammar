@@ -1,5 +1,9 @@
 # -*- mode: rpm-spec; fill-column: 80 -*-
 
+%define _topdir /home/wvxvw/Projects/cl-link-grammar
+%define buildroot %{_topdir}/%{name}-%{version}-root
+
+BuildRoot: %{buildroot}
 Summary: Natural Language Parser Bindings
 Name: cl-link-grammar
 Version: 0.0.1
@@ -7,8 +11,7 @@ Release: 1
 License: LGPL2
 Group: System Environment/Libraries
 URL: https://github.com/wvxvw/cl-link-grammar
-Packager: Oleg Sivokon <olegsivokon@gmail.com>
-Source: %{name}-%{version}.tar.gz
+Source: https://github.com/wvxvw/cl-link-grammar/raw/master/%{name}-%{version}.tar.gz
 Requires: sbcl, link-grammar
 Provides: cl-link-grammar
 

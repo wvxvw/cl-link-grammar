@@ -1,16 +1,16 @@
 # Package the sources for cl-link-grammar
 
+VERSION = 0.0.0
 PACKAGE = cl-link-grammar
 
 default: clean prepare package
-	cp -r src tests Makefile README.org ${PACKAGE}.asd ./${PACKAGE}
-	find ./${PACKAGE} -regex '.+~$$' -exec rm -rf {} +
 
 prepare:
-	mkdir -p ./${PACKAGE}
+	mkdir -p ./${PACKAGE}-${VERSION}
 
 clean:
-	rm -rf ./${PACKAGE}
+	rm -rf ./${PACKAGE}-${VERSION}
+	rm -rf ./SOURCES/*
 
 # This will need to be more specific (uninstall only the version we installed)
 uninstall:
@@ -18,7 +18,7 @@ uninstall:
 	find /etc/common-lisp/source-registry.conf.d -regex ".*${PACKAGE}.*" -exec rm -f {} +
 
 install: uninstall
-	cp -r ./${PACKAGE} /usr/share/common-lisp/source/${PACKAGE}
+	cp -r ./${PACKAGE}-${VERSION} /usr/share/common-lisp/source/${PACKAGE}
 	rm -f /usr/share/common-lisp/source/${PACKAGE}/Makefile
 	mkdir -p /etc/common-lisp/source-registry.conf.d/
 	$(eval LAST_CONF := $(shell ls /etc/common-lisp/source-registry.conf.d/ | tail -n 1))
@@ -28,6 +28,9 @@ install: uninstall
 	"/etc/common-lisp/source-registry.conf.d/${PREFIX}-${PACKAGE}.conf"
 
 tar.gz:
-	tar -zcf ${PACKAGE}.tar.gz ./${PACKAGE}
+	cp -r src tests Makefile README.org ${PACKAGE}.asd ./${PACKAGE}-${VERSION}
+	find ./${PACKAGE}-${VERSION} -regex '.+~$$' -exec rm -rf {} +
+	tar -zcf ${PACKAGE}-${VERSION}.tar.gz ./${PACKAGE}-${VERSION}/*
+	mv ./${PACKAGE}-${VERSION}.tar.gz ./SOURCES
 
 package: tar.gz
