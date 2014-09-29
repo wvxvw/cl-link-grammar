@@ -27,7 +27,7 @@ install: uninstall
 	echo '(:include "/usr/share/common-lisp/source/${PACKAGE}/")' > \
 	"/etc/common-lisp/source-registry.conf.d/${PREFIX}-${PACKAGE}.conf"
 
-tar.gz: default
+tar.gz:
 	tar -zcf ${PACKAGE}.tar.gz ./${PACKAGE}
 
 package: tar.gz
